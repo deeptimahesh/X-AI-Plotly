@@ -14,6 +14,17 @@ from dash.dependencies import Input, Output
 import pandas as pd
 import plotly.graph_objs as go
 
+import matplotlib.pyplot as plt
+import numpy as np
+from io import BytesIO
+import base64
+
+# FOR ROC CURVE 
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+from regression import y_test, y_predict_probabilities, y_predict
+
 ext_style = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 styles = {
@@ -48,6 +59,21 @@ colors = {
 
 # Have to make this modular
 slider_options = df['highest_education'].unique().tolist()
+def fig_to_uri(in_fig, close_all=True, **save_args):
+    # type: (plt.Figure) -> str
+    """
+    Save a figure as a URI
+    :param in_fig:
+    :return:
+    """
+    out_img = BytesIO()
+    in_fig.savefig(out_img, format='png', **save_args)
+    if close_all:
+        in_fig.clf()
+        plt.close('all')
+    out_img.seek(0)  # rewind file
+    encoded = base64.b64encode(out_img.read()).decode("ascii").replace("\n", "")
+    return "data:image/png;base64,{}".format(encoded)
 
 # General app layout
 app.layout = html.Div(children = 
@@ -379,6 +405,45 @@ def render_content(tab):
                     ),
             )
         ])
+    elif tab == 'model':
+        return html.Div([
+            html.Button('Run Logistic Regression', id='button', className='button'),
+            html.Div([html.Img(id = 'cur_plot', src = '')], id='plot_div', className='roc'),
+            html.H3("", id='confusion-matrix-intro'),
+            html.H4("", id='confusion-matrix'),
+            html.H4("", id='confusion-matrix-1')
+        ])
+
+
+@app.callback(
+    [Output('cur_plot', 'src'), Output('confusion-matrix-intro', 'children'),  \
+        Output('confusion-matrix', 'children'), Output('confusion-matrix-1', 'children')],
+    [Input('button', 'n_clicks')]
+)
+def display_graph(n_clicks):
+    plt.style.use('ggplot')
+
+    fpr, tpr, _ = roc_curve(y_test, y_predict_probabilities)
+    roc_auc = auc(fpr, tpr)
+    fig_null, ax1_null = plt.subplots(1,1)
+    fig, ax1 = plt.subplots(1,1)
+    ax1.plot(fpr, tpr, color='darkorange',
+            lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+    ax1.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    ax1.set_xlim([0.0, 1.0])
+    ax1.set_ylim([0.0, 1.05])
+    ax1.set_xlabel('False Positive Rate')
+    ax1.set_ylabel('True Positive Rate')
+    ax1.set_title('ROC Curve')
+    ax1.legend(loc="lower right")
+
+    out_null = fig_to_uri(fig_null)
+    out_url = fig_to_uri(fig)
+    if n_clicks:
+        return out_url, 'The confusion matrix is:', '{}'.format(confusion_matrix(y_test, y_predict)[0]), \
+            '{}'.format(confusion_matrix(y_test, y_predict)[1])
+    else:
+        return out_null, '', '', ''
 
 
 # Update scatterplot
