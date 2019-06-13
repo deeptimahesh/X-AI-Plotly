@@ -9,7 +9,7 @@ from textwrap import dedent as d
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 
 import pandas as pd
 import plotly.graph_objs as go
@@ -23,7 +23,7 @@ import base64
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
-from regression import y_test, y_predict_probabilities, y_predict
+from regression import y_test, y_predict_probabilities, y_predict, data
 
 ext_style = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -59,6 +59,11 @@ colors = {
 
 # Have to make this modular
 slider_options = df['highest_education'].unique().tolist()
+multi_drop = [
+    {"label": slider_options[i], "value": slider_options[i]}
+    for i in range(len(slider_options))
+]
+
 def fig_to_uri(in_fig, close_all=True, **save_args):
     # type: (plt.Figure) -> str
     """
@@ -94,14 +99,19 @@ app.layout = html.Div(children =
                     children=html.Div(id="data-tab"),
                 ),
                 dcc.Tab(
-                    label="Analysis",
-                    value="analysis",
-                    children=html.Div(id="analysis-tab"),
+                    label="Clustering",
+                    value="cluster",
+                    children=html.Div(id="cluster-tab"),
                 ),
                 dcc.Tab(
                     label="Model",
                     value="model",
                     children=html.Div(id="model-tab"),
+                ),
+                dcc.Tab(
+                    label="Correction",
+                    value="correction",
+                    children=html.Div(id="correction-tab"),
                 ),
             ],
             vertical=False,
@@ -178,15 +188,22 @@ def render_content(tab):
             ),
             html.Br(),
             html.Div([
-                dcc.Slider(
-                    className='slider1',
-                    id='slider-update',
-                    marks={i:'{}'.format(slider_options[i]) for i in range(len(slider_options))},
-                    max=4,
-                    value=2,
-                    step=None,
-                    updatemode='drag'
-                )
+                # dcc.Slider(
+                #     className='slider1',
+                #     id='slider-update',
+                #     marks={i:'{}'.format(slider_options[i]) for i in range(len(slider_options))},
+                #     max=4,
+                #     value=2,
+                #     step=None,
+                #     updatemode='drag'
+                # )
+                dcc.Dropdown(
+                    className='drops1',
+                    id='multi-drop',
+                    options=multi_drop,
+                    value=['Lower Than A Level', 'A Level or Equivalent'],
+                    multi = True
+                ),
             ]),
             html.Div(className='row', children=[
                 html.Div([
@@ -407,20 +424,53 @@ def render_content(tab):
         ])
     elif tab == 'model':
         return html.Div([
-            html.Button('Run Logistic Regression', id='button', className='button'),
+            dcc.Input(
+                placeholder='Enter a student id...',
+                type='number',
+                id='student_id'
+            ),
+            html.Button('Run Logistic Regression', id='button-1', className='button'),
             html.Div([html.Img(id = 'cur_plot', src = '')], id='plot_div', className='roc'),
             html.H3("", id='confusion-matrix-intro'),
             html.H4("", id='confusion-matrix'),
-            html.H4("", id='confusion-matrix-1')
+            html.H4("", id='confusion-matrix-1'),
+            html.Br(),
+            html.H3("", id='probability_student')
+        ])
+    elif tab == 'correction':
+        return html.Div([
+            html.Div([
+                html.H3("Enter the question:"),
+                dcc.Textarea(placeholder='Enter the question here...', value='',style={'width':'75%'}, id='question')
+            ]),
+            html.Div([
+                html.H3("Enter the answers:"),
+                dcc.Textarea(placeholder='Enter the reference answer here...', value='',style={'width':'75%', 'height':'200px'}, id='ref-answer'),
+                html.Br(),
+                dcc.Textarea(placeholder='Enter the student answer here...', value='',style={'width':'75%', 'height':'200px'}, id='answer-1')
+            ]),
+            html.Br(),
+            html.Div([
+                html.Button('Grade Answer', id='grade-button'),
+                dcc.Input(
+                    placeholder='The score is...',
+                    type='text',
+                    value='',
+                    id='student_id',
+                    disabled=True,
+                ),
+            ])
         ])
 
 
 @app.callback(
     [Output('cur_plot', 'src'), Output('confusion-matrix-intro', 'children'),  \
-        Output('confusion-matrix', 'children'), Output('confusion-matrix-1', 'children')],
-    [Input('button', 'n_clicks')]
+        Output('confusion-matrix', 'children'), Output('confusion-matrix-1', 'children'), \
+            Output('probability_student', 'children')],
+    [Input('button-1', 'n_clicks')],
+    [State('student_id', 'value')]
 )
-def display_graph(n_clicks):
+def display_graph(n_clicks, value):
     plt.style.use('ggplot')
 
     fpr, tpr, _ = roc_curve(y_test, y_predict_probabilities)
@@ -440,22 +490,22 @@ def display_graph(n_clicks):
     out_null = fig_to_uri(fig_null)
     out_url = fig_to_uri(fig)
     if n_clicks:
+        # value = int(value)
         return out_url, 'The confusion matrix is:', '{}'.format(confusion_matrix(y_test, y_predict)[0]), \
-            '{}'.format(confusion_matrix(y_test, y_predict)[1])
+            '{}'.format(confusion_matrix(y_test, y_predict)[1]), 'The probability of the student passing the course is {}.'.format((data['preds'].loc[value]).tolist())
     else:
-        return out_null, '', '', ''
-
-
+        return out_null, '', '', '', ''
+            
 # Update scatterplot
 @app.callback(
     [Output('overview-graph1', 'figure'), Output('intro1', 'children')],
-    [Input('my-dropdown-1', 'value'), Input('my-dropdown-2', 'value'), Input('slider-update','value'), Input('crossfilter-xaxis-type', 'value')])
+    [Input('my-dropdown-1', 'value'), Input('my-dropdown-2', 'value'), Input('multi-drop', 'value'), Input('crossfilter-xaxis-type', 'value')])
 def update_output_intro(input_value1, input_value2, selected_slider, x_axistype):
     '''
         return back updated graph
     '''
     app.config['suppress_callback_exceptions'] = True
-    filtered_df = df[df['highest_education'] == slider_options[selected_slider]]
+    filtered_df = df[df['highest_education'].isin(selected_slider)]
     return {
         'data':[
             go.Scatter(
