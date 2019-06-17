@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
@@ -44,32 +44,13 @@ sc.fit(X_train_enc)
 X_train_std = sc.transform(X_train_enc)
 X_test_std = sc.transform(X_test_enc)
 
-#LOGISTIC REGRESSION
-LR = LogisticRegression(max_iter=10000)
-LR.fit(X_train_std, y_train)
-# LR.score(X_test_std, y_test)
+knn = KNeighborsClassifier(n_neighbors=11)
+knn.fit(X_train_std, y_train)
 
-y_predict = LR.predict(X_test_std)
-y_predict_probabilities = LR.predict_proba(X_test_std)[:,1]
-# print(len(y_predict_probabilities))
-# print(confusion_matrix(y_test, y_predict))
-print(accuracy_score(y_test, y_predict))
-print(f1_score(y_test, y_predict))
+train_accuracy = knn.score(X_train_std, y_train)
+test_accuracy = knn.score(X_test_std, y_test)
+y_pred = knn.predict(X_test_std)
 
-# For Probability sakes
-sc.fit(X_enc)
-X_Pro = sc.transform(X_enc)
-Y_Pro = LR.predict_proba(X_Pro)[:,1]
-# print(len(Y_Pro))
-data['preds'] = Y_Pro
-# print((data['preds'].loc[655484]).tolist()[1])
-
-
-#LOOK UP ACCURACY, OTHER MODELS, MORE GRAPHS, MORE DETAILED
-
-#NOTES ON SOME STUDENT IDS
-#678612 : FAIL
-#649194: DISTINCTION
-#596513: PASS
-#279747: DISTINCTION
-#655484: WITHDRAWN 
+print(train_accuracy)
+print(test_accuracy)
+print(f1_score(y_test, y_pred))

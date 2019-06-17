@@ -132,8 +132,8 @@ body {
   }
   
   .three-columns {
-    float: right;
-    width: 60%;
+    /* float: right; */
+    /* width: 60%; */
     padding-top: 0%;
     margin-top: 0%;
   }
@@ -154,10 +154,15 @@ body {
   
   .drops1 {
     padding-right: 10px;
-    width: 500px;
-    float: left;
+    width: 700px;
+    /* float: right; */
   }
+  #click-data {
+    width: 1860px;
+    margin-left: 5px;
+    padding-left: 5px;
 
+  }
   .dropdown-list {
     /* width: 30%; */
     width:100%;
@@ -177,9 +182,12 @@ body {
     margin-left: 1%;
   }
 
-  .roc {
-    
-  }
+  #question-print1 {
+    display:inline-block;
+    float: right;
+    width: 50%;
+    margin-right: 50px;
+  } 
 
   #overview-graph1 {
     margin-right: 0.5%;

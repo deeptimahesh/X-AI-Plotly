@@ -7,6 +7,7 @@ import json
 from textwrap import dedent as d
 
 import dash
+import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
@@ -144,12 +145,31 @@ def render_content(tab):
                     options=data_options,
                     value='code_module',
                 ),
+                dcc.Dropdown(
+                    className='drops1',
+                    id='multi-drop',
+                    options=multi_drop,
+                    value=['Lower Than A Level', 'A Level or Equivalent'],
+                    multi = True
+                ),
                 dcc.RadioItems(
                     id='crossfilter-xaxis-type',
                     options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
                     value='Log',
                     labelStyle={'display': 'inline-block'}
                 )
+            ]),
+            html.Div([
+                # dcc.Slider(
+                #     className='slider1',
+                #     id='slider-update',
+                #     marks={i:'{}'.format(slider_options[i]) for i in range(len(slider_options))},
+                #     max=4,
+                #     value=2,
+                #     step=None,
+                #     updatemode='drag'
+                # )
+                
             ]),
             html.Br(),
             html.H4("Here is a scatterplot describing the relationship between number of clicks and final result, categorised by code module and presentation:",id='intro1'),
@@ -187,30 +207,22 @@ def render_content(tab):
                 }
             ),
             html.Br(),
-            html.Div([
-                # dcc.Slider(
-                #     className='slider1',
-                #     id='slider-update',
-                #     marks={i:'{}'.format(slider_options[i]) for i in range(len(slider_options))},
-                #     max=4,
-                #     value=2,
-                #     step=None,
-                #     updatemode='drag'
-                # )
-                dcc.Dropdown(
-                    className='drops1',
-                    id='multi-drop',
-                    options=multi_drop,
-                    value=['Lower Than A Level', 'A Level or Equivalent'],
-                    multi = True
-                ),
-            ]),
             html.Div(className='row', children=[
                 html.Div([
                     dcc.Markdown(d("""
                         **Click on points in the graph.**
                     """)),
-                    html.Pre(id='click-data', style=styles['pre']),
+                    # html.Pre(id='click-data', style=styles['pre']),
+                    dash_table.DataTable(id='click-data',columns=[{"name":i, "id":i} for i in df.columns], \
+                        style_table={'overflowX':'scroll'}, style_header={'backgroundColor':'rgb(30, 30, 30'}, \
+                            style_cell={
+                                'backgroundColor':'rgb(50,50,50)',
+                                'color':'white'
+                            },
+                            style_data_conditional=[{
+                                "if":{"row_index":"odd"},
+                                'backgroundColor':'rgb(86,86,86)'
+                            }])
                 ], className='three-columns')
             ])
 
@@ -427,7 +439,8 @@ def render_content(tab):
             dcc.Input(
                 placeholder='Enter a student id...',
                 type='number',
-                id='student_id'
+                id='student_id',
+                className='drops'
             ),
             html.Button('Run Logistic Regression', id='button-1', className='button'),
             html.Div([html.Img(id = 'cur_plot', src = '')], id='plot_div', className='roc'),
@@ -441,17 +454,18 @@ def render_content(tab):
         return html.Div([
             html.Div([
                 html.H3("Enter the question:"),
-                dcc.Textarea(placeholder='Enter the question here...', value='',style={'width':'75%'}, id='question')
-            ]),
+                dcc.Textarea(placeholder='Enter the question here...', value='',style={'width':'40%', 'height':'100px'}, id='question'),
+                html.P("The question SHOULD be printed here", id='question-print1'),
+            ], className='question-block'),
+            html.Br(),
             html.Div([
                 html.H3("Enter the answers:"),
-                dcc.Textarea(placeholder='Enter the reference answer here...', value='',style={'width':'75%', 'height':'200px'}, id='ref-answer'),
+                dcc.Textarea(placeholder='Enter the reference answer here...', value='',style={'width':'40%', 'height':'175px'}, id='ref-answer'),
                 html.Br(),
-                dcc.Textarea(placeholder='Enter the student answer here...', value='',style={'width':'75%', 'height':'200px'}, id='answer-1')
+                dcc.Textarea(placeholder='Enter the student answer here...', value='',style={'width':'40%', 'height':'175px'}, id='answer-1')
             ]),
             html.Br(),
             html.Div([
-                html.Button('Grade Answer', id='grade-button'),
                 dcc.Input(
                     placeholder='The score is...',
                     type='text',
@@ -459,7 +473,8 @@ def render_content(tab):
                     id='student_id',
                     disabled=True,
                 ),
-            ])
+                html.Button('Grade Answer', id='grade-button'),
+            ]),
         ])
 
 
@@ -537,7 +552,7 @@ def update_output_intro(input_value1, input_value2, selected_slider, x_axistype)
     }, 'Here is a scatterplot describing the relationship between "{}" and "{}", categorised by code module:'.format(input_value1, input_value2)
 
 @app.callback(
-    Output('click-data', 'children'),
+    Output('click-data', 'data'),
     [Input('overview-graph1', 'clickData')])
 def display_click_data(clickData):
     '''
@@ -547,7 +562,8 @@ def display_click_data(clickData):
         return json.dumps(None,indent=2)
     print(clickData)
     a = json.dumps(clickData, indent=2)
-    return (df[df['id_student'] == clickData['points'][0]['text']].to_json())
+    # return (df[df['id_student'] == clickData['points'][0]['text']].to_json())
+    return (df[df['id_student'] == clickData['points'][0]['text']].to_dict("records"))
 
 @app.callback(
     Output('graph-2-tabs', 'figure'),
@@ -609,5 +625,13 @@ def update_bar_graph(x_option):
         )
     )
 
+@app.callback(
+    Output('question-print1','children'),
+    [Input('question', 'value')]
+)
+def print_out_question(text):
+    # print(text)
+    return text
+        
 if __name__ == '__main__':
     app.run_server(debug=True)
