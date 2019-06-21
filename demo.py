@@ -25,6 +25,8 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 from regression import y_test, y_predict_probabilities, y_predict, data
+from knn import run_knn
+from forest import run_rf,run_dt 
 
 ext_style = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -49,8 +51,34 @@ if list(df.columns)[0] == 'Unnamed: 0':
 # Get a list of column names, and make a dictionary
 col_names = list(df.columns)
 data_options = [
-    {"label": col_names[i], "value": col_names[i]}
-    for i in range(len(col_names))
+    {"label": 'Date of Registration', "value": 'date_registration'},
+    {"label": 'Dataplus', "value": 'dataplus'},
+    {"label": 'Dual Pane', "value": 'dualpane'},
+    {"label": 'External Quiz', "value": 'externalquiz'},
+    {"label": 'Forum', "value": 'forumng' },
+    {"label": 'Repeat Activity', "value": 'repeatactivity'},
+    {"label": 'Resource', "value": 'resource'},
+    {"label": 'Quiz', "value": 'quiz'},
+    {"label": 'Shared Subpage', "value": 'sharedsubpage'},
+    {"label": 'Subpage', "value": 'subpage'},
+    {"label": 'URL', "value": 'url'},
+    {"label": 'Sum Click', "value": 'sum_click'},
+    {"label": 'Days Interacted', "value": 'days_interacted'},
+    {"label": 'Daily Click', "value": 'daily_click'},
+    {"label": 'Exam Score', "value": 'Exam_score'}
+    # for i in range(len(col_names))
+]
+
+data_options1 = [
+    {"label": 'Code Module', "value": 'code_module'},
+    {"label": 'Code Presentation', "value": 'code_presentation'},
+    {"label": 'Gender', "value": 'gender'},
+    {"label": 'Region', "value": 'region'},
+    {"label": 'IMD Band', "value": 'imd_band' },
+    {"label": 'Age Band', "value": 'age_band'},
+    {"label": 'Resource', "value": 'resource'},
+    {"label": "Previous Attempts", "value": 'num_of_prev_attempts'},
+    {"label": 'Studied Credits', "value": 'studied_credits'},
 ]
 
 colors = {
@@ -100,9 +128,9 @@ app.layout = html.Div(children =
                     children=html.Div(id="data-tab"),
                 ),
                 dcc.Tab(
-                    label="Clustering",
-                    value="cluster",
-                    children=html.Div(id="cluster-tab"),
+                    label="Compare",
+                    value="compare",
+                    children=html.Div(id="compare-tab"),
                 ),
                 dcc.Tab(
                     label="Model",
@@ -142,7 +170,7 @@ def render_content(tab):
                 dcc.Dropdown(
                     className='drops',
                     id='my-dropdown-2',
-                    options=data_options,
+                    options=data_options1,
                     value='code_module',
                 ),
                 dcc.Dropdown(
@@ -159,18 +187,18 @@ def render_content(tab):
                     labelStyle={'display': 'inline-block'}
                 )
             ]),
-            html.Div([
-                # dcc.Slider(
-                #     className='slider1',
-                #     id='slider-update',
-                #     marks={i:'{}'.format(slider_options[i]) for i in range(len(slider_options))},
-                #     max=4,
-                #     value=2,
-                #     step=None,
-                #     updatemode='drag'
-                # )
+            # html.Div([
+            #     # dcc.Slider(
+            #     #     className='slider1',
+            #     #     id='slider-update',
+            #     #     marks={i:'{}'.format(slider_options[i]) for i in range(len(slider_options))},
+            #     #     max=4,
+            #     #     value=2,
+            #     #     step=None,
+            #     #     updatemode='drag'
+            #     # )
                 
-            ]),
+            # ]),
             html.Br(),
             html.H4("Here is a scatterplot describing the relationship between number of clicks and final result, categorised by code module and presentation:",id='intro1'),
             dcc.Graph(
@@ -440,16 +468,26 @@ def render_content(tab):
                 placeholder='Enter a student id...',
                 type='number',
                 id='student_id',
-                className='drops'
+                className='drops-mult'
             ),
-            html.Button('Run Logistic Regression', id='button-1', className='button'),
-            html.Div([html.Img(id = 'cur_plot', src = '')], id='plot_div', className='roc'),
-            html.H3("", id='confusion-matrix-intro'),
-            html.H4("", id='confusion-matrix'),
-            html.H4("", id='confusion-matrix-1'),
-            html.Br(),
-            html.H3("", id='probability_student')
-        ])
+            dcc.Dropdown(
+                className='drops3',
+                id='my-dropdown-4',
+                options=[
+                    {'label':'K Nearest Neighbors', 'value':'knn'},
+                    {'label':'Logistic Regression', 'value':'log'},
+                    {'label':'Random Forest', 'value':'rf'},
+                    {'label':'Decision Tree', 'value':'dt'}
+                ],
+                value='log',
+                multi = True
+            ),
+            html.Button('Run', id='button-1', className='button'),
+            # html.Button('Run KNN', id='button-2', className='buttons'),
+            html.Div([], id='plot_div', className='roc'),
+
+            
+        ], className = 'model-div')
     elif tab == 'correction':
         return html.Div([
             html.Div([
@@ -476,24 +514,74 @@ def render_content(tab):
                 html.Button('Grade Answer', id='grade-button'),
             ]),
         ])
-
+    elif tab == 'compare':
+        return html.Div([
+            dcc.Dropdown(
+                className='drops-multi',
+                id='my-dropdown-5',
+                options=data_options1,
+                value='',
+                multi = True
+            ),
+            html.Div(id="the-bars")
+        ])
 
 @app.callback(
-    [Output('cur_plot', 'src'), Output('confusion-matrix-intro', 'children'),  \
-        Output('confusion-matrix', 'children'), Output('confusion-matrix-1', 'children'), \
-            Output('probability_student', 'children')],
-    [Input('button-1', 'n_clicks')],
+    Output('the-bars', 'children'),
+    [Input('my-dropdown-5', 'value')]
+)
+def return_correlation(value):
+    return dcc.Graph(
+        
+    )
+
+@app.callback(
+    # [Output('cur_plot', 'src'), Output('confusion-matrix-intro', 'children'),  \
+    #     Output('confusion-matrix', 'children'), Output('confusion-matrix-1', 'children'), \
+    #         Output('probability_student', 'children')],
+    Output('plot_div', 'children'),
+    [Input('button-1', 'n_clicks'), Input('my-dropdown-4','value')],
     [State('student_id', 'value')]
 )
-def display_graph(n_clicks, value):
+def display_graph(n_clicks, algo, value):
     plt.style.use('ggplot')
-
-    fpr, tpr, _ = roc_curve(y_test, y_predict_probabilities)
-    roc_auc = auc(fpr, tpr)
-    fig_null, ax1_null = plt.subplots(1,1)
     fig, ax1 = plt.subplots(1,1)
-    ax1.plot(fpr, tpr, color='darkorange',
-            lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+       
+    if n_clicks and 'log' in algo:
+        fpr, tpr, _ = roc_curve(y_test, y_predict_probabilities)
+        roc_auc = auc(fpr, tpr)
+        ax1.plot(fpr, tpr, color='darkorange',
+            lw=2, label='Logistic Regression (area = %0.2f)' % roc_auc)
+        # return html.Div([
+        #     html.Img(id = 'cur_plot', src = out_url),
+        #     html.H3("The confusion matrix is:", id='confusion-matrix-intro'),
+        #     html.H4("{}".format(confusion_matrix(y_test, y_predict)[0]), id='confusion-matrix'),
+        #     html.H4("{}".format(confusion_matrix(y_test, y_predict)[1]), id='confusion-matrix-1'),
+        #     html.Br(),
+        #     html.H3("The probability of the student passing the course is {}.".format((data['preds'].loc[value]).tolist()), id='probability_student')
+        # ])
+    if n_clicks and 'knn' in algo:
+        knn_prob = run_knn()
+        fpr_knn, tpr_knn, _ = roc_curve(y_test, knn_prob)
+        roc_auc = auc(fpr_knn, tpr_knn)
+        ax1.plot(fpr_knn, tpr_knn, color='crimson',
+            lw=2, label='KNN (area = %0.2f)' % roc_auc)
+
+    if n_clicks and 'rf' in algo:
+        rf_prob = run_rf()
+        fpr_rf, tpr_rf, _ = roc_curve(y_test, rf_prob)
+        roc_auc = auc(fpr_rf, tpr_rf)
+        ax1.plot(fpr_rf, tpr_rf, color='#bf6a0f',
+            lw=2, label='Random Forest (area = %0.2f)' % roc_auc)
+    
+    if n_clicks and 'dt' in algo:
+        dt_prob = run_dt()
+        fpr_dt, tpr_dt, _ = roc_curve(y_test, dt_prob)
+        roc_auc = auc(fpr_dt, tpr_dt)
+        ax1.plot(fpr_dt, tpr_dt, color='#892f11',
+            lw=2, label='Decision Tree (area = %0.2f)' % roc_auc)
+
+            
     ax1.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
     ax1.set_xlim([0.0, 1.0])
     ax1.set_ylim([0.0, 1.05])
@@ -502,14 +590,18 @@ def display_graph(n_clicks, value):
     ax1.set_title('ROC Curve')
     ax1.legend(loc="lower right")
 
-    out_null = fig_to_uri(fig_null)
+    # out_null = fig_to_uri(fig_null)
     out_url = fig_to_uri(fig)
-    if n_clicks:
-        # value = int(value)
-        return out_url, 'The confusion matrix is:', '{}'.format(confusion_matrix(y_test, y_predict)[0]), \
-            '{}'.format(confusion_matrix(y_test, y_predict)[1]), 'The probability of the student passing the course is {}.'.format((data['preds'].loc[value]).tolist())
-    else:
-        return out_null, '', '', '', ''
+
+    # value = int(value)
+    return html.Div([
+            html.Img(id = 'cur_plot', src = out_url),
+            html.H3("", id='confusion-matrix-intro'),
+            html.H4("", id='confusion-matrix'),
+            html.H4("", id='confusion-matrix-1'),
+            html.Br(),
+            html.H3("", id='probability_student')
+        ])
             
 # Update scatterplot
 @app.callback(

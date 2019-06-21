@@ -223,6 +223,19 @@ body {
     float: none;
     margin: 0 auto;
   }
+
+  .model-Div {
+    display: inline-block;
+  }
+  #my-dropdown-4 {
+    width: 1000px;
+    float: left;
+    /* margin-left: 5px;    */
+  }
+  .drops-mult {
+    float: left;
+    width: 30%;
+  }
   
   /*
   margin-left: 0.5%;
