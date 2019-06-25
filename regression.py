@@ -53,8 +53,8 @@ y_predict = LR.predict(X_test_std)
 y_predict_probabilities = LR.predict_proba(X_test_std)[:,1]
 # print(len(y_predict_probabilities))
 # print(confusion_matrix(y_test, y_predict))
-print(accuracy_score(y_test, y_predict))
-print(f1_score(y_test, y_predict))
+# print(accuracy_score(y_test, y_predict))
+# print(f1_score(y_test, y_predict))
 
 # For Probability sakes
 sc.fit(X_enc)

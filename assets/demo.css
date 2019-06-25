@@ -233,10 +233,19 @@ body {
     /* margin-left: 5px;    */
   }
   .drops-mult {
+    /* padding-left: 20px; */
+    margin-left: 3%;
     float: left;
     width: 30%;
   }
+
+  #introoo {
+    margin-left: 3%;
+  }
   
+  #introo {
+    margin-left: 3%;
+  }
   /*
   margin-left: 0.5%;
    */

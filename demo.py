@@ -137,11 +137,11 @@ app.layout = html.Div(children =
                     value="model",
                     children=html.Div(id="model-tab"),
                 ),
-                dcc.Tab(
-                    label="Correction",
-                    value="correction",
-                    children=html.Div(id="correction-tab"),
-                ),
+                # dcc.Tab(
+                #     label="Correction",
+                #     value="correction",
+                #     children=html.Div(id="correction-tab"),
+                # ),
             ],
             vertical=False,
             mobile_breakpoint=480,
@@ -161,6 +161,7 @@ def render_content(tab):
             html.Div([html.H3('Overview Tab')], className = 'banner2'),
             html.Br(),
             html.Div([
+                html.P("Choose a feature on the X-axis and the Y-axis:"),
                 dcc.Dropdown(
                     className='drops',
                     id='my-dropdown-1',
@@ -173,6 +174,7 @@ def render_content(tab):
                     options=data_options1,
                     value='code_module',
                 ),
+                html.P("Choose educational qualification of the students:"),
                 dcc.Dropdown(
                     className='drops1',
                     id='multi-drop',
@@ -259,6 +261,7 @@ def render_content(tab):
         return html.Div([
             html.Div([html.H3('Data Analysis')], className="banner2"),
             html.Br(),
+            html.H4("Here's a series of piecharts detailing the number of students in each age group separated by code module:"),
             dcc.Graph(
                 id='pie-char1',
                 figure = go.Figure(
@@ -347,6 +350,7 @@ def render_content(tab):
                 )
             ),
             html.Br(),
+            html.H4("Choose a field to compare average per student (categorized by final result):"),
             dcc.Dropdown(
                 className='drops',
                 id='my-dropdown-3',
@@ -464,11 +468,13 @@ def render_content(tab):
         ])
     elif tab == 'model':
         return html.Div([
+            html.H2("Run prediction models and/or enter a student-id to predict their final result:", id='introoo'),
             dcc.Input(
                 placeholder='Enter a student id...',
                 type='number',
                 id='student_id',
-                className='drops-mult'
+                className='drops-mult',
+                value = ""
             ),
             dcc.Dropdown(
                 className='drops3',
@@ -545,7 +551,7 @@ def return_correlation(value):
 )
 def display_graph(n_clicks, algo, value):
     plt.style.use('ggplot')
-    fig, ax1 = plt.subplots(1,1)
+    fig, ax1 = plt.subplots(figsize=(15,7))
        
     if n_clicks and 'log' in algo:
         fpr, tpr, _ = roc_curve(y_test, y_predict_probabilities)
@@ -593,15 +599,34 @@ def display_graph(n_clicks, algo, value):
     # out_null = fig_to_uri(fig_null)
     out_url = fig_to_uri(fig)
 
-    # value = int(value)
-    return html.Div([
-            html.Img(id = 'cur_plot', src = out_url),
-            html.H3("", id='confusion-matrix-intro'),
-            html.H4("", id='confusion-matrix'),
-            html.H4("", id='confusion-matrix-1'),
-            html.Br(),
-            html.H3("", id='probability_student')
+    if value == "":
+        return html.Div([
+            html.Img(id = 'cur_plot', src = out_url)
         ])
+    if isinstance((data['preds'].loc[value]).tolist(), float):
+        a = (data['preds'].loc[value]).tolist()
+    else:
+        a = (data['preds'].loc[value]).tolist()[0]
+    print(a)
+    if a>=0.5:
+        print(a)
+        return html.Div([
+                html.Img(id = 'cur_plot', src = out_url),
+                # html.H3("The confusion matrix is:", id='confusion-matrix-intro'),
+                # html.H4("{}".format(confusion_matrix(y_test, y_predict)[0]), id='confusion-matrix'),
+                # html.H4("{}".format(confusion_matrix(y_test, y_predict)[1]), id='confusion-matrix-1'),
+                html.Br(),
+                html.H3("The probability of the student passing the course is {}.".format((data['preds'].loc[value]).tolist()), id='introoo'),
+                html.H1("The student will most likely pass the course.", style = {'margin-left':'3%'})
+            ])
+    if a<0.5:
+        print(a)
+        return html.Div([
+                html.Img(id = 'cur_plot', src = out_url),
+                html.Br(),
+                html.H1("The probability of the student passing the course is {}.".format((data['preds'].loc[value]).tolist()), id='introoo'),
+                html.H3("The student will most likely not pass the course.", style = {'margin-left':'3%'}),
+            ])
             
 # Update scatterplot
 @app.callback(
