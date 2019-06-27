@@ -44,9 +44,9 @@ app = dash.Dash(__name__, external_stylesheets = ext_style)
 app.config['suppress_callback_exceptions'] = True
 
 # Convert to data frame
-df = pd.read_csv("~/Documents/HM/anonymisedData/Open_Univ_Data_Final.csv")
+df = pd.read_csv("Open_Univ_Data_Final_merged.csv")
 if list(df.columns)[0] == 'Unnamed: 0':
-   df = pd.read_csv("~/Documents/HM/anonymisedData/Open_Univ_Data_Final.csv", index_col=0)
+   df = pd.read_csv("~/Documents/HM/anonymisedData/Open_Univ_Data_Final_merged.csv", index_col=0)
 
 # Get a list of column names, and make a dictionary
 col_names = list(df.columns)
@@ -350,7 +350,7 @@ def render_content(tab):
                 )
             ),
             html.Br(),
-            html.H4("Choose a field to compare average per student (categorized by final result):"),
+            html.H4("Choose a field to compare average per code module (categorized by final result):"),
             dcc.Dropdown(
                 className='drops',
                 id='my-dropdown-3',
