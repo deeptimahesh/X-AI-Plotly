@@ -27,6 +27,8 @@ import matplotlib.pyplot as plt
 from regression import y_test, y_predict_probabilities, y_predict, data
 from knn import run_knn
 from forest import run_rf,run_dt 
+from exai import xgb
+from xgboost import plot_importance
 
 ext_style = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -128,14 +130,14 @@ app.layout = html.Div(children =
                     children=html.Div(id="data-tab"),
                 ),
                 dcc.Tab(
-                    label="Compare",
-                    value="compare",
-                    children=html.Div(id="compare-tab"),
-                ),
-                dcc.Tab(
                     label="Model",
                     value="model",
                     children=html.Div(id="model-tab"),
+                ),
+                dcc.Tab(
+                    label="Evaluate",
+                    value="eval",
+                    children=html.Div(id="eval-tab"),
                 ),
                 # dcc.Tab(
                 #     label="Correction",
@@ -520,7 +522,29 @@ def render_content(tab):
                 html.Button('Grade Answer', id='grade-button'),
             ]),
         ])
-    elif tab == 'compare':
+    elif tab == 'eval':
+        fig = plt.figure(figsize=(18,10))
+        title = fig.suptitle("Native Features Importance", fontsize = 20)
+        ax1 = fig.add_subplot(1,1,1)
+        plot_importance(xgb, importance_type='weight', ax = ax1, color='blue')
+        ax1.set_title("Feature Imp. with weights");
+
+        out1 = fig_to_uri(fig)
+
+        fig1 = plt.figure(figsize=(18,10))
+        ax2 = fig1.add_subplot(1,1,1)
+        plot_importance(xgb, importance_type='cover', ax = ax2, color='green')
+        ax2.set_title("Feature Importance with Sample Coverage");
+
+        out2 = fig_to_uri(fig1)
+
+        # fig2 = plt.figure(figsize=(19,10))
+        # ax3 = fig2.add_subplot(1,1,1)
+        # plot_importance(xgb, importance_type='gain', ax = ax3, color='red')
+        # ax3.set_title("Split Mean Gain")
+
+        # out3 = fig_to_uri(fig2)
+
         return html.Div([
             dcc.Dropdown(
                 className='drops-multi',
@@ -529,7 +553,12 @@ def render_content(tab):
                 value='',
                 multi = True
             ),
-            html.Div(id="the-bars")
+            # html.Div(id="the-bars"),
+            html.Div([
+                html.Img(id = 'predd', src = out1, className = 'plotty'),
+                html.Img(id = 'predd1', src = out2, className = 'plotty'),
+                # html.Img(id = 'predd2', src = out3, className = 'plotty'),
+            ])
         ])
 
 @app.callback(
