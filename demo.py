@@ -29,6 +29,15 @@ from knn import run_knn
 from forest import run_rf,run_dt 
 from exai import xgb
 from xgboost import plot_importance
+from eli5file import exp, exp_idx, X_test, shap_explainer, test_shap_vals, test_X_imp_df
+
+import shap
+shap.initjs()
+
+colors = {
+    'background': '#111111',
+    'text': '#ffffff'
+}
 
 ext_style = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -83,10 +92,7 @@ data_options1 = [
     {"label": 'Studied Credits', "value": 'studied_credits'},
 ]
 
-colors = {
-    'background': '#111111',
-    'text': '#ffffff'
-}
+
 
 # Have to make this modular
 slider_options = df['highest_education'].unique().tolist()
@@ -531,20 +537,40 @@ def render_content(tab):
 
         out1 = fig_to_uri(fig)
 
+        # fig1 = plt.figure(figsize=(18,10))
+        # 
+        # plot_importance(xgb, importance_type='cover', ax = ax2, color='green')
+        # ax2.set_title("Feature Importance with Sample Coverage");
+
+        # out2 = fig_to_uri(fig1)
+
+        # # fig2 = plt.figure(figsize=(19,10))
+        # # ax3 = fig2.add_subplot(1,1,1)
+        # # plot_importance(xgb, importance_type='gain', ax = ax3, color='red')
+        # # ax3.set_title("Split Mean Gain")
+
+        # # out3 = fig_to_uri(fig2)
+        # exp_idx = 0
+        exp1 = exp.as_list(label=1)
         fig1 = plt.figure(figsize=(18,10))
+        title = fig.suptitle("Student ID 593613", fontsize = 20)
         ax2 = fig1.add_subplot(1,1,1)
-        plot_importance(xgb, importance_type='cover', ax = ax2, color='green')
-        ax2.set_title("Feature Importance with Sample Coverage");
+        vals = [x[1] for x in exp1]
+        names = [x[0] for x in exp1]
+        vals.reverse()
+        names.reverse()
+        colorsola = ['green' if x > 0 else 'red' for x in vals]
+        pos = np.arange(len(exp1)) + .5
+        plt.barh(pos, vals, align='center', color=colorsola)
+        plt.yticks(pos, names)
+        title1 = 'Local explanation for class %s' % list(X_test.id)[exp_idx]
+        ax2.set_title(title1)
 
         out2 = fig_to_uri(fig1)
+        image_filename = 'a.png' # replace with your own image
+        encoded_image = base64.b64encode(open(image_filename, 'rb').read())
 
-        # fig2 = plt.figure(figsize=(19,10))
-        # ax3 = fig2.add_subplot(1,1,1)
-        # plot_importance(xgb, importance_type='gain', ax = ax3, color='red')
-        # ax3.set_title("Split Mean Gain")
-
-        # out3 = fig_to_uri(fig2)
-
+        out3 = fig_to_uri(shap.force_plot(shap_explainer.expected_value[0], test_shap_vals[0][0,:], test_X_imp_df.iloc[0,:], show=False, matplotlib=True))
         return html.Div([
             dcc.Dropdown(
                 className='drops-multi',
@@ -556,8 +582,11 @@ def render_content(tab):
             # html.Div(id="the-bars"),
             html.Div([
                 html.Img(id = 'predd', src = out1, className = 'plotty'),
+                html.H2("Local Analysis of Contributions", className = 'plotty'),
+                html.H3("Taking student id 593613 who is predicted to fail:", className = 'plotty'),
                 html.Img(id = 'predd1', src = out2, className = 'plotty'),
                 # html.Img(id = 'predd2', src = out3, className = 'plotty'),
+                html.Img(id = 'predd3', src = 'data:image/png;base64,{}'.format(encoded_image.decode()), className = 'plotty1')
             ])
         ])
 
