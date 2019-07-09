@@ -570,6 +570,8 @@ def render_content(tab):
         image_filename = 'a.png' # replace with your own image
         encoded_image = base64.b64encode(open(image_filename, 'rb').read())
 
+        image_filename1 = 'b.png'
+        encoded_image1 = base64.b64encode(open(image_filename1, 'rb').read())
         out3 = fig_to_uri(shap.force_plot(shap_explainer.expected_value[0], test_shap_vals[0][0,:], test_X_imp_df.iloc[0,:], show=False, matplotlib=True))
         return html.Div([
             dcc.Dropdown(
@@ -582,6 +584,8 @@ def render_content(tab):
             # html.Div(id="the-bars"),
             html.Div([
                 html.Img(id = 'predd', src = out1, className = 'plotty'),
+                html.H3("Using SHAP:", className = 'plotty'),
+                html.Img(id = 'predd4', src = 'data:image/png;base64,{}'.format(encoded_image1.decode()), className = 'plotty1'),
                 html.H2("Local Analysis of Contributions", className = 'plotty'),
                 html.H3("Taking student id 593613 who is predicted to fail:", className = 'plotty'),
                 html.Img(id = 'predd1', src = out2, className = 'plotty'),
